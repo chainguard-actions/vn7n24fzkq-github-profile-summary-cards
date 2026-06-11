@@ -8,6 +8,7 @@ Hardened by [Chainguard](https://www.chainguard.dev) from the upstream action at
 
 | Version | Tag | Upstream commit |
 |---------|-----|-----------------|
+| v0.6.0-hotfix.1 | [`v0.6.0-hotfix.1`](https://github.com/chainguard-actions/vn7n24fzkq-github-profile-summary-cards/tree/v0.6.0-hotfix.1) | [`a1b0e00`](https://github.com/vn7n24fzkq/github-profile-summary-cards/commit/a1b0e00064d52f0e9c830d72f3fc2c01c6b4857e) |
 | v0.6.0-hotfix.2 | [`v0.6.0-hotfix.2`](https://github.com/chainguard-actions/vn7n24fzkq-github-profile-summary-cards/tree/v0.6.0-hotfix.2) | [`11a2c1d`](https://github.com/vn7n24fzkq/github-profile-summary-cards/commit/11a2c1d324d6bd7031e66e0b8eeebfbabcbde332) |
 
 ## Privacy
