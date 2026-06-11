@@ -12,6 +12,7 @@ Hardened by [Chainguard](https://www.chainguard.dev) from the upstream action at
 | v0.6.0-hotfix.2 | [`v0.6.0-hotfix.2`](https://github.com/chainguard-actions/vn7n24fzkq-github-profile-summary-cards/tree/v0.6.0-hotfix.2) | [`11a2c1d`](https://github.com/vn7n24fzkq/github-profile-summary-cards/commit/11a2c1d324d6bd7031e66e0b8eeebfbabcbde332) |
 | v0.6.0-hotfix.3 | [`v0.6.0-hotfix.3`](https://github.com/chainguard-actions/vn7n24fzkq-github-profile-summary-cards/tree/v0.6.0-hotfix.3) | [`f18b344`](https://github.com/vn7n24fzkq/github-profile-summary-cards/commit/f18b344538c900287496fa7dc1f8c5a774039def) |
 | v0.6.1 | [`v0.6.1`](https://github.com/chainguard-actions/vn7n24fzkq-github-profile-summary-cards/tree/v0.6.1) | [`ae62846`](https://github.com/vn7n24fzkq/github-profile-summary-cards/commit/ae6284625fc180957980316aea016ee10f556c6c) |
+| v0.7.0 | [`v0.7.0`](https://github.com/chainguard-actions/vn7n24fzkq-github-profile-summary-cards/tree/v0.7.0) | [`5055b27`](https://github.com/vn7n24fzkq/github-profile-summary-cards/commit/5055b27ac896c627043ead432f9b2fa973aa2c80) |
 
 ## Privacy
 
