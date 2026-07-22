@@ -8,6 +8,7 @@ Hardened by [Chainguard](https://www.chainguard.dev) from the upstream action at
 
 | Version | Tag | Upstream commit |
 |---------|-----|-----------------|
+| v0.11.5 | [`v0.11.5`](https://github.com/chainguard-actions/vn7n24fzkq-github-profile-summary-cards/tree/v0.11.5) | [`56f44c1`](https://github.com/vn7n24fzkq/github-profile-summary-cards/commit/56f44c1836d87f6855f4e1bab2b9813eee60d09a) |
 | v0.6.0-hotfix.1 | [`v0.6.0-hotfix.1`](https://github.com/chainguard-actions/vn7n24fzkq-github-profile-summary-cards/tree/v0.6.0-hotfix.1) | [`a1b0e00`](https://github.com/vn7n24fzkq/github-profile-summary-cards/commit/a1b0e00064d52f0e9c830d72f3fc2c01c6b4857e) |
 | v0.6.0-hotfix.2 | [`v0.6.0-hotfix.2`](https://github.com/chainguard-actions/vn7n24fzkq-github-profile-summary-cards/tree/v0.6.0-hotfix.2) | [`11a2c1d`](https://github.com/vn7n24fzkq/github-profile-summary-cards/commit/11a2c1d324d6bd7031e66e0b8eeebfbabcbde332) |
 | v0.6.0-hotfix.3 | [`v0.6.0-hotfix.3`](https://github.com/chainguard-actions/vn7n24fzkq-github-profile-summary-cards/tree/v0.6.0-hotfix.3) | [`f18b344`](https://github.com/vn7n24fzkq/github-profile-summary-cards/commit/f18b344538c900287496fa7dc1f8c5a774039def) |
