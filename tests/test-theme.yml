@@ -1,0 +1,38 @@
+name: Test theme selection - generate cards with specific theme
+on:
+  workflow_dispatch:
+jobs:
+  test:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@de0fac2e4500dabe0009e67214ff5f5447ce83dd # v6.0.2
+      - id: action
+        uses: .
+        with:
+          USERNAME: 'vn7n24fzkq'
+          AUTO_PUSH: false
+          THEME: 'github_dark'
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+      - name: Assert cards were generated for github_dark theme
+        run: |
+          echo "Checking for generated profile-summary-card-output directory..."
+          if [ ! -d "profile-summary-card-output" ]; then
+            echo "FAIL: profile-summary-card-output directory not found"
+            exit 1
+          fi
+          echo "Directory contents:"
+          ls -la profile-summary-card-output/ || true
+          # When a specific theme is set, only that theme's folder should be generated
+          if [ ! -d "profile-summary-card-output/github_dark" ]; then
+            echo "FAIL: github_dark theme directory not found"
+            ls -la profile-summary-card-output/ || true
+            exit 1
+          fi
+          SVG_COUNT=$(find profile-summary-card-output/github_dark -name "*.svg" | wc -l)
+          echo "SVG files found in github_dark: $SVG_COUNT"
+          if [ "$SVG_COUNT" -eq 0 ]; then
+            echo "FAIL: no SVG files were generated for github_dark theme"
+            exit 1
+          fi
+          echo "PASS: $SVG_COUNT SVG files generated for github_dark theme"

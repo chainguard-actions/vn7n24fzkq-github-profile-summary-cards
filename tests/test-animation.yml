@@ -1,0 +1,40 @@
+name: Test animation - generate cards with animation baked in
+on:
+  workflow_dispatch:
+jobs:
+  test:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@de0fac2e4500dabe0009e67214ff5f5447ce83dd # v6.0.2
+      - id: action
+        uses: .
+        with:
+          USERNAME: 'vn7n24fzkq'
+          AUTO_PUSH: false
+          THEME: 'github'
+          ANIMATION: 'fade'
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+      - name: Assert animated cards were generated
+        run: |
+          echo "Checking for generated profile-summary-card-output directory..."
+          if [ ! -d "profile-summary-card-output" ]; then
+            echo "FAIL: profile-summary-card-output directory not found"
+            exit 1
+          fi
+          echo "Directory contents:"
+          ls -la profile-summary-card-output/ || true
+          SVG_COUNT=$(find profile-summary-card-output -name "*.svg" | wc -l)
+          echo "SVG files found: $SVG_COUNT"
+          if [ "$SVG_COUNT" -eq 0 ]; then
+            echo "FAIL: no SVG files were generated"
+            exit 1
+          fi
+          # Check that at least one SVG contains animation CSS
+          ANIMATED=$(grep -rl "animation" profile-summary-card-output --include="*.svg" | wc -l)
+          echo "SVG files with animation: $ANIMATED"
+          if [ "$ANIMATED" -eq 0 ]; then
+            echo "FAIL: no SVG files contain animation CSS"
+            exit 1
+          fi
+          echo "PASS: $ANIMATED animated SVG files generated"

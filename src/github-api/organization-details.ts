@@ -1,0 +1,154 @@
+import request, {assertNoGraphQLErrors} from '../utils/request';
+import {shouldFetchNextPage, VERCEL_MAX_ORG_DETAIL_PAGES} from '../const/pagination';
+import {withDataCache} from '../utils/data-cache';
+
+export class OrganizationDetails {
+    id: number;
+    login: string;
+    name: string;
+    createdAt: string;
+    description: string | null = null;
+    email: string | null = null;
+    location: string | null = null;
+    websiteUrl: string | null = null;
+    twitterUsername: string | null = null;
+    isVerified: boolean = false;
+    totalPublicRepos: number = 0;
+    totalStars: number = 0;
+    totalForks: number = 0;
+    totalOpenIssues: number = 0;
+    repoCreatedAt: Date[] = [];
+    constructor(id: number, login: string, name: string, createdAt: string) {
+        this.id = id;
+        this.login = login;
+        this.name = name;
+        this.createdAt = createdAt;
+    }
+}
+
+const fetcher = (token: string, variables: any) => {
+    // Query via `repositoryOwner` + an Organization fragment rather than the
+    // `organization` root field: the latter requires the `read:org` scope for
+    // every field (even login/name), which we deliberately don't grant — a
+    // public card service must only ever read public data with a shared token.
+    // `repositoryOwner` exposes exactly the public owner data and needs no scope.
+    return request(
+        {
+            Authorization: `bearer ${token}`
+        },
+        {
+            query: `
+      query OrganizationDetails($login: String!, $endCursor: String) {
+        repositoryOwner(login: $login) {
+            __typename
+            ... on Organization {
+                id
+                login
+                name
+                description
+                email
+                location
+                websiteUrl
+                twitterUsername
+                createdAt
+                isVerified
+                repositories(first: 100, after: $endCursor, privacy: PUBLIC, isFork: false, ownerAffiliations: OWNER) {
+                    totalCount
+                    pageInfo {
+                        endCursor
+                        hasNextPage
+                    }
+                    nodes {
+                        createdAt
+                        forkCount
+                        stargazers {
+                            totalCount
+                        }
+                        issues(states: OPEN) {
+                            totalCount
+                        }
+                    }
+                }
+            }
+        }
+      }
+      `,
+            variables
+        }
+    );
+};
+
+export async function getOrganizationDetails(login: string, token: string): Promise<OrganizationDetails> {
+    // On Vercel, totals are sampled from the first pages of repos (natural order,
+    // capped by VERCEL_MAX_ORG_DETAIL_PAGES and the pagination time budget — star
+    // ordering 502s GitHub-side for mega orgs). Run as a GitHub Action / CLI (own
+    // token, no limits) every repo is paginated for exact totals. totalPublicRepos
+    // is always exact (totalCount).
+    // Raw org info + node list are cached per login; the OrganizationDetails
+    // instance (with real Date objects) is assembled after the cache boundary.
+    const {org, nodes} = await withDataCache(`v1:od:${login.toLowerCase()}`, async () => {
+        let orgInfo: any = null;
+        const collected: any[] = [];
+        const startedAt = Date.now();
+        let cursor: string | null = null;
+        let hasNextPage = true;
+        let pages = 0;
+
+        while (hasNextPage) {
+            const res: any = await fetcher(token, {login: login, endCursor: cursor});
+
+            assertNoGraphQLErrors(res, 'GetOrganizationDetails failed');
+
+            const owner = res.data.data.repositoryOwner;
+            if (!owner || owner.__typename !== 'Organization') {
+                throw Error(`Organization not found: ${login}`);
+            }
+
+            if (orgInfo === null) {
+                orgInfo = {
+                    id: owner.id,
+                    login: owner.login,
+                    name: owner.name,
+                    createdAt: owner.createdAt,
+                    description: owner.description,
+                    email: owner.email,
+                    location: owner.location,
+                    websiteUrl: owner.websiteUrl,
+                    twitterUsername: owner.twitterUsername,
+                    isVerified: owner.isVerified,
+                    totalPublicRepos: owner.repositories.totalCount
+                };
+            }
+            collected.push(...owner.repositories.nodes);
+
+            cursor = owner.repositories.pageInfo?.endCursor ?? null;
+            pages += 1;
+            hasNextPage = shouldFetchNextPage(
+                !!owner.repositories.pageInfo?.hasNextPage,
+                pages,
+                VERCEL_MAX_ORG_DETAIL_PAGES,
+                startedAt
+            );
+        }
+
+        return {org: orgInfo, nodes: collected};
+    });
+
+    const organizationDetails = new OrganizationDetails(org.id, org.login, org.name, org.createdAt);
+    organizationDetails.description = org.description;
+    organizationDetails.email = org.email || null;
+    organizationDetails.location = org.location;
+    organizationDetails.websiteUrl = org.websiteUrl;
+    organizationDetails.twitterUsername = org.twitterUsername;
+    organizationDetails.isVerified = !!org.isVerified;
+    organizationDetails.totalPublicRepos = org.totalPublicRepos;
+
+    for (const node of nodes) {
+        organizationDetails.totalStars += node.stargazers.totalCount;
+        organizationDetails.totalForks += node.forkCount;
+        organizationDetails.totalOpenIssues += node.issues.totalCount;
+        organizationDetails.repoCreatedAt.push(new Date(node.createdAt));
+    }
+
+    return organizationDetails;
+}
