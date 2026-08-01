@@ -1,0 +1,44 @@
+name: Test basic card generation
+on:
+  workflow_dispatch:
+jobs:
+  test:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@de0fac2e4500dabe0009e67214ff5f5447ce83dd # v6.0.2
+
+      - name: Show environment info
+        run: |
+          echo "Node version: $(node --version 2>/dev/null || echo 'not found')"
+          echo "Sudo available: $(sudo echo yes 2>/dev/null || echo 'no')"
+          echo "GITHUB_REPOSITORY: $GITHUB_REPOSITORY"
+          echo "GITHUB_REPOSITORY_OWNER: $GITHUB_REPOSITORY_OWNER"
+
+      - id: action
+        uses: .
+        with:
+          USERNAME: octocat
+          AUTO_PUSH: false
+          THEME: github
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: Assert SVG files were generated
+        run: |
+          echo "Checking for generated SVG files..."
+          if [ ! -d "profile-summary-card-output/github" ]; then
+            echo "FAIL: profile-summary-card-output/github directory not found"
+            ls -la profile-summary-card-output/ 2>/dev/null || echo "Output directory missing entirely"
+            exit 1
+          fi
+          echo "github theme directory exists"
+          ls -la profile-summary-card-output/github/
+
+          SVG_COUNT=$(find profile-summary-card-output/github -name "*.svg" | wc -l)
+          echo "SVG files in github theme: $SVG_COUNT"
+          if [ "$SVG_COUNT" -lt 1 ]; then
+            echo "FAIL: No SVG files generated for github theme"
+            exit 1
+          fi
+
+          echo "PASS: Generated $SVG_COUNT SVG files for github theme"

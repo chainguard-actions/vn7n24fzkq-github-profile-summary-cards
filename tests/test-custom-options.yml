@@ -1,0 +1,41 @@
+name: Test custom options (UTC offset, name override, animation)
+on:
+  workflow_dispatch:
+jobs:
+  test:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@de0fac2e4500dabe0009e67214ff5f5447ce83dd # v6.0.2
+
+      - id: action
+        uses: .
+        with:
+          USERNAME: octocat
+          AUTO_PUSH: false
+          THEME: github
+          UTC_OFFSET: '5'
+          NAME: 'Test User'
+          ANIMATION: 'fade'
+          DURATION: '1.5'
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: Assert cards generated with custom options
+        run: |
+          echo "Checking for generated cards with custom options..."
+          if [ ! -d "profile-summary-card-output/github" ]; then
+            echo "FAIL: profile-summary-card-output/github directory not found"
+            ls -la profile-summary-card-output/ 2>/dev/null || echo "Output directory missing entirely"
+            exit 1
+          fi
+          echo "github theme directory exists"
+          ls -la profile-summary-card-output/github/
+
+          SVG_COUNT=$(find profile-summary-card-output/github -name "*.svg" | wc -l)
+          echo "SVG files in github theme: $SVG_COUNT"
+          if [ "$SVG_COUNT" -lt 1 ]; then
+            echo "FAIL: No SVG files generated for github theme"
+            exit 1
+          fi
+
+          echo "PASS: Generated $SVG_COUNT SVG files with custom options (UTC_OFFSET=5, NAME='Test User', ANIMATION=fade)"

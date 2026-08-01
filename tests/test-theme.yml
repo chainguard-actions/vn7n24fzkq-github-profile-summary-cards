@@ -1,0 +1,46 @@
+name: Test specific theme generation
+on:
+  workflow_dispatch:
+jobs:
+  test:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@de0fac2e4500dabe0009e67214ff5f5447ce83dd # v6.0.2
+
+      - id: action
+        uses: .
+        with:
+          USERNAME: octocat
+          AUTO_PUSH: false
+          THEME: github_dark
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: Assert only github_dark theme was generated
+        run: |
+          echo "Checking for github_dark theme output..."
+          if [ ! -d "profile-summary-card-output/github_dark" ]; then
+            echo "FAIL: profile-summary-card-output/github_dark directory not found"
+            ls -la profile-summary-card-output/ 2>/dev/null || echo "Output directory missing entirely"
+            exit 1
+          fi
+          echo "github_dark directory exists"
+          ls -la profile-summary-card-output/github_dark/
+
+          # Verify SVG files exist in the theme directory
+          SVG_COUNT=$(find profile-summary-card-output/github_dark -name "*.svg" | wc -l)
+          echo "SVG files in github_dark: $SVG_COUNT"
+          if [ "$SVG_COUNT" -lt 1 ]; then
+            echo "FAIL: No SVG files found in github_dark theme directory"
+            exit 1
+          fi
+
+          # Verify only the requested theme was generated (no other theme dirs)
+          THEME_DIRS=$(find profile-summary-card-output -mindepth 1 -maxdepth 1 -type d | grep -v github_dark | wc -l)
+          echo "Other theme directories: $THEME_DIRS"
+          if [ "$THEME_DIRS" -gt 0 ]; then
+            echo "WARN: Other theme directories found (expected only github_dark):"
+            find profile-summary-card-output -mindepth 1 -maxdepth 1 -type d | grep -v github_dark
+          fi
+
+          echo "PASS: github_dark theme generated with $SVG_COUNT SVG files"

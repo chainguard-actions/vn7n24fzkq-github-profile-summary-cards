@@ -1,0 +1,863 @@
+<!doctype html>
+<html lang="en">
+    <head>
+        <meta charset="UTF-8" />
+        <!-- Responsive, and (unlike the old page) zoom is NOT disabled. -->
+        <meta name="viewport" content="width=device-width, initial-scale=1" />
+        <title>GitHub Profile Summary Cards</title>
+        <meta
+            name="description"
+            content="Generate summary cards for your GitHub profile README — themes, custom colours and animations, live preview."
+        />
+        <link
+            rel="icon"
+            href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'%3E%3Ctext y='.9em' font-size='90'%3E%F0%9F%93%87%3C/text%3E%3C/svg%3E"
+        />
+        <style>
+            /* ---- Theme tokens: system pref by default, [data-theme] wins when toggled ---- */
+            :root {
+                --bg: #ffffff;
+                --surface: #f6f8fa;
+                --fg: #1f2328;
+                --muted: #656d76;
+                --border: #d0d7de;
+                --accent: #0969da;
+                --accent-fg: #ffffff;
+                --shadow: 0 1px 3px rgba(27, 31, 36, 0.12);
+                --radius: 10px;
+                color-scheme: light;
+            }
+            @media (prefers-color-scheme: dark) {
+                :root {
+                    --bg: #0d1117;
+                    --surface: #161b22;
+                    --fg: #e6edf3;
+                    --muted: #8b949e;
+                    --border: #30363d;
+                    --accent: #2f81f7;
+                    --accent-fg: #ffffff;
+                    --shadow: 0 1px 3px rgba(1, 4, 9, 0.5);
+                    color-scheme: dark;
+                }
+            }
+            :root[data-theme='light'] {
+                --bg: #ffffff;
+                --surface: #f6f8fa;
+                --fg: #1f2328;
+                --muted: #656d76;
+                --border: #d0d7de;
+                --accent: #0969da;
+                --shadow: 0 1px 3px rgba(27, 31, 36, 0.12);
+                color-scheme: light;
+            }
+            :root[data-theme='dark'] {
+                --bg: #0d1117;
+                --surface: #161b22;
+                --fg: #e6edf3;
+                --muted: #8b949e;
+                --border: #30363d;
+                --accent: #2f81f7;
+                --shadow: 0 1px 3px rgba(1, 4, 9, 0.5);
+                color-scheme: dark;
+            }
+
+            * {
+                box-sizing: border-box;
+            }
+            body {
+                margin: 0;
+                background: var(--bg);
+                color: var(--fg);
+                font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Helvetica, Arial, sans-serif,
+                    'Apple Color Emoji', 'Segoe UI Emoji';
+                line-height: 1.5;
+            }
+            a {
+                color: var(--accent);
+            }
+            .wrap {
+                max-width: 1080px;
+                margin: 0 auto;
+                padding: 1.5rem 1rem 4rem;
+            }
+
+            header {
+                display: flex;
+                flex-wrap: wrap;
+                align-items: center;
+                gap: 0.75rem 1rem;
+                margin-bottom: 1.5rem;
+            }
+            header h1 {
+                font-size: clamp(1.4rem, 3.5vw, 2rem);
+                margin: 0;
+                flex: 1 1 auto;
+            }
+            header .sub {
+                width: 100%;
+                margin: 0;
+                color: var(--muted);
+            }
+            .toolbar {
+                display: flex;
+                gap: 0.5rem;
+                align-items: center;
+                flex-wrap: wrap;
+            }
+            .btn {
+                font: inherit;
+                cursor: pointer;
+                border: 1px solid var(--border);
+                background: var(--surface);
+                color: var(--fg);
+                border-radius: var(--radius);
+                padding: 0.45rem 0.8rem;
+                display: inline-flex;
+                align-items: center;
+                gap: 0.4rem;
+                text-decoration: none;
+            }
+            .btn:hover {
+                border-color: var(--accent);
+            }
+            .btn.primary {
+                background: var(--accent);
+                color: var(--accent-fg);
+                border-color: var(--accent);
+            }
+            .btn .count {
+                font-size: 0.85em;
+                border: 1px solid var(--border);
+                border-radius: 999px;
+                padding: 0 0.5em;
+                background: var(--bg);
+            }
+
+            .layout {
+                display: grid;
+                grid-template-columns: 320px 1fr;
+                gap: 1.5rem;
+                align-items: start;
+            }
+            @media (max-width: 800px) {
+                .layout {
+                    grid-template-columns: 1fr;
+                }
+            }
+
+            .panel {
+                background: var(--surface);
+                border: 1px solid var(--border);
+                border-radius: var(--radius);
+                padding: 1rem;
+            }
+            .controls {
+                position: sticky;
+                top: 1rem;
+            }
+            .controls-toggle {
+                display: none;
+            }
+            @media (max-width: 800px) {
+                /* On phones the panel stacks above the cards; sticky would pin
+                   the taller-than-viewport panel over everything while
+                   scrolling. Make it static and collapsible instead. */
+                .controls {
+                    position: static;
+                }
+                .controls-toggle {
+                    display: flex;
+                    align-items: center;
+                    justify-content: space-between;
+                    width: 100%;
+                    font: inherit;
+                    font-weight: 600;
+                    background: none;
+                    border: none;
+                    color: var(--fg);
+                    padding: 0.1rem 0;
+                    cursor: pointer;
+                }
+                .controls-toggle .chev {
+                    transition: transform 0.15s;
+                }
+                .controls.collapsed .controls-body {
+                    display: none;
+                }
+                .controls.collapsed .controls-toggle .chev {
+                    transform: rotate(-90deg);
+                }
+                .controls:not(.collapsed) .controls-body {
+                    margin-top: 0.9rem;
+                }
+            }
+            .field {
+                margin-bottom: 0.9rem;
+            }
+            .field label {
+                display: block;
+                font-size: 0.82rem;
+                font-weight: 600;
+                margin-bottom: 0.25rem;
+            }
+            .field input,
+            .field select {
+                width: 100%;
+                font: inherit;
+                padding: 0.45rem 0.55rem;
+                border: 1px solid var(--border);
+                border-radius: 8px;
+                background: var(--bg);
+                color: var(--fg);
+            }
+            .row {
+                display: grid;
+                grid-template-columns: 1fr 1fr;
+                gap: 0.6rem;
+            }
+            details.colors {
+                border: 1px solid var(--border);
+                border-radius: 8px;
+                padding: 0.5rem 0.7rem;
+                margin-bottom: 0.9rem;
+            }
+            details.colors summary {
+                cursor: pointer;
+                font-size: 0.82rem;
+                font-weight: 600;
+            }
+            .colorgrid {
+                display: grid;
+                grid-template-columns: 1fr 1fr;
+                gap: 0.5rem;
+                margin-top: 0.7rem;
+            }
+            .colorrow {
+                display: flex;
+                align-items: center;
+                gap: 0.4rem;
+                font-size: 0.8rem;
+            }
+            .colorrow input[type='color'] {
+                width: 34px;
+                height: 28px;
+                padding: 0;
+                border: 1px solid var(--border);
+                border-radius: 6px;
+                background: none;
+            }
+            .hint {
+                font-size: 0.75rem;
+                color: var(--muted);
+                margin: 0.2rem 0 0;
+            }
+
+            .cards {
+                display: grid;
+                grid-template-columns: 1fr 1fr;
+                gap: 1rem;
+            }
+            .card {
+                border: 1px solid var(--border);
+                border-radius: var(--radius);
+                overflow: hidden;
+                background: var(--bg);
+                box-shadow: var(--shadow);
+            }
+            .card.wide {
+                grid-column: 1 / -1;
+            }
+            @media (max-width: 560px) {
+                .cards {
+                    grid-template-columns: 1fr;
+                }
+            }
+            .card figure {
+                margin: 0;
+                padding: 0.75rem;
+                display: flex;
+                justify-content: center;
+                background: var(--surface);
+            }
+            .card img {
+                max-width: 100%;
+                height: auto;
+            }
+            .card .meta {
+                display: flex;
+                align-items: center;
+                justify-content: space-between;
+                gap: 0.5rem;
+                padding: 0.5rem 0.75rem;
+                border-top: 1px solid var(--border);
+            }
+            .card .meta span {
+                font-size: 0.8rem;
+                color: var(--muted);
+            }
+            .copy {
+                font-size: 0.78rem;
+                padding: 0.3rem 0.6rem;
+            }
+            .copy.copied {
+                color: #1a7f37;
+                border-color: #1a7f37;
+            }
+
+            footer {
+                margin-top: 2.5rem;
+                text-align: center;
+                color: var(--muted);
+                font-size: 0.85rem;
+            }
+            .bmc {
+                margin-top: 1rem;
+                text-align: center;
+            }
+            @media (prefers-reduced-motion: reduce) {
+                * {
+                    transition: none !important;
+                    scroll-behavior: auto !important;
+                }
+            }
+            :focus-visible {
+                outline: 2px solid var(--accent);
+                outline-offset: 2px;
+            }
+        </style>
+        <!-- GA4 page analytics. The measurement ID is public by design; the
+             Measurement Protocol api_secret stays server-side. Conservative
+             consent defaults: no ad storage/signals, only analytics.
+             No SRI hash: gtag.js is dynamically generated and updated by
+             Google, so a pinned integrity value would break on every rollout —
+             the accepted trade-off for Google-hosted tags. -->
+        <script async src="https://www.googletagmanager.com/gtag/js?id=G-MSMZVNK63E"></script>
+        <script>
+            window.dataLayer = window.dataLayer || [];
+            function gtag() {
+                dataLayer.push(arguments);
+            }
+            gtag('consent', 'default', {
+                ad_storage: 'denied',
+                ad_user_data: 'denied',
+                ad_personalization: 'denied',
+                analytics_storage: 'granted'
+            });
+            gtag('js', new Date());
+            gtag('config', 'G-MSMZVNK63E');
+        </script>
+    </head>
+    <body>
+        <div class="wrap">
+            <header>
+                <h1>GitHub Profile Summary Cards</h1>
+                <div class="toolbar">
+                    <button class="btn" id="themeToggle" type="button" aria-label="Toggle colour theme">
+                        🌓 Theme
+                    </button>
+                    <a
+                        class="btn"
+                        href="https://github.com/vn7n24fzkq/github-profile-summary-cards"
+                        target="_blank"
+                        rel="noopener"
+                        >★ Star on GitHub <span class="count" id="starCount" hidden></span
+                    ></a>
+                </div>
+                <p class="sub">
+                    Generate summary cards for your profile README — pick a theme, tweak colours and animation, then
+                    copy the Markdown.
+                </p>
+            </header>
+
+            <div class="layout">
+                <!-- ---------------- Controls ---------------- -->
+                <form class="panel controls" id="form" autocomplete="off">
+                    <button
+                        type="button"
+                        class="controls-toggle"
+                        id="controlsToggle"
+                        aria-expanded="true"
+                        aria-controls="controlsBody"
+                    >
+                        ⚙️ Customize <span class="chev" aria-hidden="true">▾</span>
+                    </button>
+                    <div class="controls-body" id="controlsBody">
+                        <div class="field">
+                            <label for="username">GitHub username / organization</label>
+                            <input id="username" name="username" value="vn7n24fzkq" required />
+                        </div>
+
+                        <div class="row">
+                            <div class="field">
+                                <label for="theme">Theme</label>
+                                <select id="theme" name="theme"></select>
+                            </div>
+                            <div class="field">
+                                <label for="animation">Animation</label>
+                                <select id="animation" name="animation">
+                                    <option value="">none</option>
+                                    <option value="fade">fade</option>
+                                    <option value="rise">rise</option>
+                                    <option value="draw">draw</option>
+                                    <option value="stagger">stagger</option>
+                                    <option value="load">load</option>
+                                    <option value="sequence">sequence</option>
+                                    <option value="tint">tint</option>
+                                    <option value="rgb">rgb</option>
+                                    <option value="rgb-soft">rgb-soft</option>
+                                </select>
+                            </div>
+                        </div>
+
+                        <div class="row">
+                            <div class="field">
+                                <label for="duration">Duration (s)</label>
+                                <input
+                                    id="duration"
+                                    name="duration"
+                                    type="number"
+                                    min="0.2"
+                                    max="10"
+                                    step="0.1"
+                                    placeholder="default"
+                                />
+                            </div>
+                            <div class="field">
+                                <label for="utcOffset">UTC offset</label>
+                                <input
+                                    id="utcOffset"
+                                    name="utcOffset"
+                                    type="number"
+                                    min="-12"
+                                    max="14"
+                                    step="1"
+                                    value="0"
+                                />
+                            </div>
+                        </div>
+
+                        <div class="field">
+                            <label for="name">Display name (profile card)</label>
+                            <input id="name" name="name" placeholder="default: login (name)" />
+                        </div>
+
+                        <div class="field">
+                            <label for="exclude">Exclude languages (comma separated)</label>
+                            <input id="exclude" name="exclude" placeholder="e.g. html,css" />
+                        </div>
+
+                        <details class="colors">
+                            <summary>Custom colours</summary>
+                            <div class="colorgrid" id="colorgrid"></div>
+                            <p class="hint">Leave a colour unticked to use the theme's default.</p>
+                        </details>
+
+                        <button class="btn primary" id="copyAll" type="button" style="width: 100%">
+                            📋 Copy all Markdown
+                        </button>
+                    </div>
+                </form>
+
+                <!-- ---------------- Preview ---------------- -->
+                <div>
+                    <div class="cards" id="cards"></div>
+                    <div class="bmc">
+                        <a href="https://www.buymeacoffee.com/vn7n24fzkq" target="_blank" rel="noopener">
+                            <img
+                                src="https://cdn.buymeacoffee.com/buttons/v2/default-yellow.png"
+                                alt="Buy Me a Coffee"
+                                style="height: 60px; width: 217px"
+                            />
+                        </a>
+                    </div>
+                    <footer>
+                        Cards update as you type. Markdown you copy points at this site's API —
+                        <a
+                            href="https://github.com/vn7n24fzkq/github-profile-summary-cards"
+                            target="_blank"
+                            rel="noopener"
+                            >docs &amp; self-hosting</a
+                        >.
+                    </footer>
+                </div>
+            </div>
+        </div>
+
+        <script>
+            (function () {
+                'use strict';
+                var origin = window.location.origin;
+
+                // Card list: [endpoint, label, wide?]
+                var CARDS = [
+                    ['profile-details', 'Profile details', true],
+                    ['repos-per-language', 'Top languages by repo', false],
+                    ['most-commit-language', 'Top languages by commit', false],
+                    ['stats', 'Stats', false],
+                    ['productive-time', 'Productive time', false]
+                ];
+                // Custom-colour params (API expects hex without '#').
+                var COLORS = [
+                    ['title_color', 'Title'],
+                    ['text_color', 'Text'],
+                    ['bg_color', 'Background'],
+                    ['border_color', 'Border'],
+                    ['icon_color', 'Icon'],
+                    ['chart_color', 'Chart']
+                ];
+                var FALLBACK_THEMES = [
+                    'default',
+                    'github_dark',
+                    'dracula',
+                    'tokyonight',
+                    'solarized',
+                    'gruvbox',
+                    'nord_dark',
+                    'transparent'
+                ];
+
+                var form = document.getElementById('form');
+                var cardsEl = document.getElementById('cards');
+                var colorGrid = document.getElementById('colorgrid');
+                var els = {};
+                ['username', 'theme', 'animation', 'duration', 'utcOffset', 'name', 'exclude'].forEach(function (id) {
+                    els[id] = document.getElementById(id);
+                });
+
+                // ---- Build custom-colour inputs (checkbox enables it + a colour picker) ----
+                COLORS.forEach(function (c) {
+                    var key = c[0];
+                    var row = document.createElement('label');
+                    row.className = 'colorrow';
+                    row.innerHTML =
+                        '<input type="checkbox" data-enable="' +
+                        key +
+                        '"> ' +
+                        '<input type="color" data-color="' +
+                        key +
+                        '" value="#000000"> ' +
+                        '<span>' +
+                        c[1] +
+                        '</span>';
+                    colorGrid.appendChild(row);
+                });
+
+                function colorParams() {
+                    var out = [];
+                    COLORS.forEach(function (c) {
+                        var key = c[0];
+                        var on = colorGrid.querySelector('[data-enable="' + key + '"]');
+                        var val = colorGrid.querySelector('[data-color="' + key + '"]');
+                        if (on && on.checked && val) out.push([key, val.value.replace('#', '')]);
+                    });
+                    return out;
+                }
+
+                // Clamp a numeric input to [min,max]; null if it isn't a number.
+                function clampNum(raw, min, max) {
+                    var n = parseFloat(raw);
+                    if (isNaN(n)) return null;
+                    return Math.min(max, Math.max(min, n));
+                }
+
+                // Build a card URL. `demo` = true adds source=demo (for previews on this
+                // page only); the Markdown users copy must NOT carry it, or their embeds
+                // would be miscounted as demo traffic. Assumes a non-empty username
+                // (build() guards that) — we never silently substitute another profile.
+                function cardUrl(endpoint, demo) {
+                    var p = new URLSearchParams();
+                    p.set('username', els.username.value.trim());
+                    p.set('theme', els.theme.value);
+                    if (els.animation.value) {
+                        p.set('animation', els.animation.value);
+                        var dur = clampNum(els.duration.value, 0.2, 10);
+                        if (dur !== null) p.set('duration', String(dur));
+                    }
+                    if (endpoint === 'profile-details' && els.name.value.trim()) p.set('name', els.name.value.trim());
+                    if (endpoint === 'productive-time') {
+                        var off = clampNum(els.utcOffset.value, -12, 14);
+                        if (off !== null) p.set('utcOffset', String(off));
+                    }
+                    if (
+                        (endpoint === 'repos-per-language' || endpoint === 'most-commit-language') &&
+                        els.exclude.value.trim()
+                    )
+                        p.set('exclude', els.exclude.value.trim());
+                    colorParams().forEach(function (kv) {
+                        p.set(kv[0], kv[1]);
+                    });
+                    if (demo) p.set('source', 'demo');
+                    return origin + '/api/cards/' + endpoint + '?' + p.toString();
+                }
+
+                function markdown(endpoint) {
+                    return '![](' + cardUrl(endpoint, false) + ')';
+                }
+
+                // ---- Render preview cards ----
+                function build() {
+                    cardsEl.replaceChildren();
+                    // Require a username — never guess a profile on the user's behalf.
+                    if (!els.username.value.trim()) {
+                        var hint = document.createElement('p');
+                        hint.className = 'hint';
+                        hint.style.gridColumn = '1 / -1';
+                        hint.textContent = 'Enter a GitHub username or organization to preview your cards.';
+                        cardsEl.appendChild(hint);
+                        return;
+                    }
+                    var bust = Date.now(); // cache-buster so animations replay on re-render
+                    var pending = []; // stagger queue — see below
+                    CARDS.forEach(function (c, idx) {
+                        var endpoint = c[0],
+                            label = c[1],
+                            wide = c[2];
+                        var card = document.createElement('div');
+                        card.className = 'card' + (wide ? ' wide' : '');
+
+                        var fig = document.createElement('figure');
+                        var img = document.createElement('img');
+                        img.loading = 'lazy';
+                        img.alt = label + ' card preview';
+                        // Stagger the five requests: for an uncached heavyweight
+                        // account, firing them simultaneously can burst dozens of
+                        // parallel GitHub queries server-side and trip secondary
+                        // rate limits. Each card starts when the previous one
+                        // settles (or after a short timeout).
+                        pending.push({img: img, src: cardUrl(endpoint, true) + '&_t=' + bust});
+                        fig.appendChild(img);
+
+                        var meta = document.createElement('div');
+                        meta.className = 'meta';
+                        var name = document.createElement('span');
+                        name.textContent = label;
+                        var copy = document.createElement('button');
+                        copy.type = 'button';
+                        copy.className = 'btn copy';
+                        copy.textContent = 'Copy Markdown';
+                        copy.addEventListener('click', function () {
+                            copyText(markdown(endpoint), copy);
+                        });
+                        meta.appendChild(name);
+                        meta.appendChild(copy);
+
+                        card.appendChild(fig);
+                        card.appendChild(meta);
+                        cardsEl.appendChild(card);
+                    });
+
+                    // Kick off the staggered loads: next card starts when the
+                    // previous settles, with a 4s safety timeout so one slow
+                    // card never stalls the rest.
+                    (function loadNext(i) {
+                        if (i >= pending.length) return;
+                        var item = pending[i];
+                        var advanced = false;
+                        var advance = function () {
+                            if (advanced) return;
+                            advanced = true;
+                            loadNext(i + 1);
+                        };
+                        item.img.addEventListener('load', advance);
+                        item.img.addEventListener('error', advance);
+                        setTimeout(advance, 4000);
+                        item.img.src = item.src;
+                    })(0);
+                }
+
+                function copyText(text, btn) {
+                    var done = function () {
+                        if (!btn) return;
+                        var old = btn.textContent;
+                        btn.textContent = 'Copied ✓';
+                        btn.classList.add('copied');
+                        setTimeout(function () {
+                            btn.textContent = old;
+                            btn.classList.remove('copied');
+                        }, 1500);
+                    };
+                    if (navigator.clipboard && navigator.clipboard.writeText) {
+                        navigator.clipboard.writeText(text).then(done, function () {
+                            if (legacyCopy(text)) done();
+                        });
+                    } else if (legacyCopy(text)) {
+                        done();
+                    }
+                }
+                // Returns whether the copy actually succeeded, so callers don't claim
+                // "Copied" when nothing reached the clipboard.
+                function legacyCopy(text) {
+                    var ta = document.createElement('textarea');
+                    ta.value = text;
+                    ta.style.position = 'fixed';
+                    ta.style.opacity = '0';
+                    document.body.appendChild(ta);
+                    ta.select();
+                    var ok = false;
+                    try {
+                        ok = document.execCommand('copy');
+                    } catch (e) {
+                        ok = false;
+                    }
+                    document.body.removeChild(ta);
+                    return ok;
+                }
+
+                document.getElementById('copyAll').addEventListener('click', function () {
+                    var all = CARDS.map(function (c) {
+                        return markdown(c[0]);
+                    }).join('\n');
+                    copyText(all, this);
+                });
+
+                // ---- Persist + restore form state ----
+                var STORE = 'gpsc-demo';
+                function save() {
+                    try {
+                        var s = {fields: {}, colors: {}};
+                        Object.keys(els).forEach(function (k) {
+                            s.fields[k] = els[k].value;
+                        });
+                        COLORS.forEach(function (c) {
+                            var key = c[0];
+                            var on = colorGrid.querySelector('[data-enable="' + key + '"]');
+                            var val = colorGrid.querySelector('[data-color="' + key + '"]');
+                            s.colors[key] = {on: !!(on && on.checked), val: val ? val.value : '#000000'};
+                        });
+                        localStorage.setItem(STORE, JSON.stringify(s));
+                    } catch (e) {
+                        /* ignore */
+                    }
+                }
+                function restore() {
+                    try {
+                        var s = JSON.parse(localStorage.getItem(STORE) || '{}');
+                        var fields = s.fields || {};
+                        Object.keys(fields).forEach(function (k) {
+                            if (els[k] && fields[k] != null && els[k].tagName !== 'SELECT') els[k].value = fields[k];
+                        });
+                        var colors = s.colors || {};
+                        COLORS.forEach(function (c) {
+                            var key = c[0];
+                            var cfg = colors[key];
+                            if (!cfg) return;
+                            var on = colorGrid.querySelector('[data-enable="' + key + '"]');
+                            var val = colorGrid.querySelector('[data-color="' + key + '"]');
+                            if (on) on.checked = !!cfg.on;
+                            if (val && cfg.val) val.value = cfg.val;
+                        });
+                        return fields; // caller reads .theme / .animation
+                    } catch (e) {
+                        return {};
+                    }
+                }
+
+                var debounceTimer;
+                function scheduleBuild() {
+                    save();
+                    clearTimeout(debounceTimer);
+                    debounceTimer = setTimeout(build, 350);
+                }
+                form.addEventListener('input', scheduleBuild);
+                form.addEventListener('submit', function (e) {
+                    e.preventDefault();
+                    build();
+                });
+
+                // ---- Theme toggle (persisted) ----
+                var themeBtn = document.getElementById('themeToggle');
+                function applyTheme(t) {
+                    if (t === 'light' || t === 'dark') document.documentElement.setAttribute('data-theme', t);
+                    else document.documentElement.removeAttribute('data-theme');
+                }
+                try {
+                    applyTheme(localStorage.getItem('gpsc-theme'));
+                } catch (e) {}
+                themeBtn.addEventListener('click', function () {
+                    var cur = document.documentElement.getAttribute('data-theme');
+                    var prefersDark = window.matchMedia && window.matchMedia('(prefers-color-scheme: dark)').matches;
+                    // Cycle: (system) -> opposite of system -> back to system.
+                    var next = cur ? '' : prefersDark ? 'light' : 'dark';
+                    applyTheme(next);
+                    try {
+                        localStorage.setItem('gpsc-theme', next);
+                    } catch (e) {}
+                });
+
+                // ---- Populate themes, then first render ----
+                var saved = restore();
+                function fillThemes(list) {
+                    els.theme.replaceChildren();
+                    list.forEach(function (t) {
+                        var o = document.createElement('option');
+                        o.value = t;
+                        o.textContent = t;
+                        els.theme.appendChild(o);
+                    });
+                    if (saved.theme && list.indexOf(saved.theme) !== -1) els.theme.value = saved.theme;
+                    if (saved.animation) els.animation.value = saved.animation;
+                    build();
+                }
+                fetch(origin + '/api/theme')
+                    .then(function (r) {
+                        return r.ok ? r.json() : null;
+                    })
+                    .then(function (d) {
+                        fillThemes(d && d.themes && d.themes.length ? d.themes : FALLBACK_THEMES);
+                    })
+                    .catch(function () {
+                        fillThemes(FALLBACK_THEMES);
+                    });
+
+                // ---- Collapsible controls on small screens ----
+                // The panel is taller than a phone viewport; start it collapsed
+                // so visitors see the cards first, one tap away from tweaking.
+                (function () {
+                    var form = document.getElementById('form');
+                    var toggle = document.getElementById('controlsToggle');
+                    function setCollapsed(collapsed) {
+                        form.classList.toggle('collapsed', collapsed);
+                        toggle.setAttribute('aria-expanded', String(!collapsed));
+                    }
+                    if (window.matchMedia && window.matchMedia('(max-width: 800px)').matches) {
+                        setCollapsed(true);
+                    }
+                    toggle.addEventListener('click', function () {
+                        setCollapsed(!form.classList.contains('collapsed'));
+                    });
+                })();
+
+                // ---- Live star count on the GitHub button ----
+                // Unauthenticated GitHub API is limited to 60 req/h per client IP,
+                // so cache the count for an hour; on any failure just leave the
+                // badge hidden — the button works fine without it.
+                (function () {
+                    var el = document.getElementById('starCount');
+                    function show(n) {
+                        el.textContent = n >= 1000 ? (n / 1000).toFixed(1).replace(/\.0$/, '') + 'k' : String(n);
+                        el.hidden = false;
+                    }
+                    try {
+                        var cached = JSON.parse(sessionStorage.getItem('gpsc-stars') || 'null');
+                        if (cached && Date.now() - cached.at < 3600000) return show(cached.n);
+                    } catch (e) {}
+                    fetch('https://api.github.com/repos/vn7n24fzkq/github-profile-summary-cards')
+                        .then(function (r) {
+                            return r.ok ? r.json() : null;
+                        })
+                        .then(function (d) {
+                            if (!d || typeof d.stargazers_count !== 'number') return;
+                            show(d.stargazers_count);
+                            try {
+                                sessionStorage.setItem(
+                                    'gpsc-stars',
+                                    JSON.stringify({n: d.stargazers_count, at: Date.now()})
+                                );
+                            } catch (e) {}
+                        })
+                        .catch(function () {});
+                })();
+            })();
+        </script>
+    </body>
+</html>
