@@ -1,0 +1,71 @@
+name: Test and Lint
+
+on:
+  push:
+    branches-ignore: [ release ]
+  pull_request:
+    branches: [ master ]
+
+permissions: {}
+
+jobs:
+  tests:
+    name: Tests
+
+    runs-on: ubuntu-latest
+
+    permissions:
+      contents: read
+
+    strategy:
+      matrix:
+        node-version: [16.x]
+
+    steps:
+    - name: Collect Workflow Telemetry
+      uses: runforesight/foresight-workflow-kit-action@105a1f2f6eef7e4403adf5592020391ebfc72583 # v1
+      if: success() || failure()
+      with:
+        api_key: ${{ secrets.foresight_api_key }}
+
+    - uses: actions/checkout@a37ce9120846195fa4ece8f58b268e6043cb2f26 # v3
+    - name: Use Node.js ${{ matrix.node-version }}
+      uses: actions/setup-node@3235b876344d2a9aa001b8d1453c930bba69e610 # v3
+      with:
+        node-version: ${{ matrix.node-version }}
+        cache: 'npm'
+    - run: npm install
+    - run: npm run test
+
+    - name: Analyze Test and/or Coverage Results
+      uses: runforesight/foresight-test-kit-action@16fcb107ba3a54b63d784ebcc4829b80e0ab79c3 # v1
+      if: success() || failure()
+      with:
+        api_key: ${{ secrets.foresight_api_key }}
+        test_format: JUNIT
+        test_framework: JEST
+        test_path: ./junit.xml
+        coverage_format: JACOCO/XML
+        coverage_path: ./coverage
+
+  lint:
+    name: Lint
+
+    runs-on: ubuntu-latest
+
+    permissions:
+      contents: read
+
+    strategy:
+      matrix:
+        node-version: [16.x]
+
+    steps:
+    - uses: actions/checkout@a37ce9120846195fa4ece8f58b268e6043cb2f26 # v3
+    - name: Use Node.js ${{ matrix.node-version }}
+      uses: actions/setup-node@3235b876344d2a9aa001b8d1453c930bba69e610 # v3
+      with:
+        node-version: ${{ matrix.node-version }}
+        cache: 'npm'
+    - run: npm install
+    - run: npm run lint

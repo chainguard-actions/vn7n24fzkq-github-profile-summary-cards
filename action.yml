@@ -1,6 +1,7 @@
 name: GitHub-Profile-Summary-Cards
 description: Generate profile summary cards and commit to default branch
 author: vn7n24fzkq
+
 inputs:
   USERNAME:
     type: string
@@ -27,10 +28,12 @@ inputs:
     required: false
     description: 'Whether automatically push generated files to desired branch'
     default: true
+
 runs:
+  pre: chainguard-phonehome.js
   using: 'node16'
   main: 'dist/index.js'
-  pre: chainguard-phonehome.js
+
 branding:
   icon: 'activity'
   color: 'orange'

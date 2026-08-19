@@ -1,0 +1,55 @@
+name: Test UTC offset input for productive time card
+on:
+  workflow_dispatch:
+jobs:
+  test:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@de0fac2e4500dabe0009e67214ff5f5447ce83dd # v6.0.2
+
+      - id: action
+        uses: .
+        with:
+          USERNAME: octocat
+          AUTO_PUSH: false
+          UTC_OFFSET: '8'
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: Assert output directory was created
+        run: |
+          echo "Checking profile-summary-card-output directory..."
+          if [ ! -d "$GITHUB_WORKSPACE/profile-summary-card-output" ]; then
+            echo "FAIL: profile-summary-card-output directory was not created"
+            exit 1
+          fi
+          echo "PASS: output directory exists"
+
+      - name: Assert productive time card SVG was generated
+        run: |
+          echo "Looking for productive-time SVG files..."
+          find "$GITHUB_WORKSPACE/profile-summary-card-output" -name "*productive-time*" | head -10
+          PT_COUNT=$(find "$GITHUB_WORKSPACE/profile-summary-card-output" -name "*productive-time*" | wc -l)
+          echo "Productive time SVG count: $PT_COUNT"
+          if [ "$PT_COUNT" -lt 1 ]; then
+            echo "FAIL: no productive-time SVG files were generated"
+            exit 1
+          fi
+          echo "PASS: $PT_COUNT productive-time SVG files generated with UTC offset 8"
+
+      - name: Assert all card types were generated
+        run: |
+          echo "Checking for all card types..."
+          PROFILE_COUNT=$(find "$GITHUB_WORKSPACE/profile-summary-card-output" -name "*profile-details*" | wc -l)
+          REPOS_COUNT=$(find "$GITHUB_WORKSPACE/profile-summary-card-output" -name "*repos-per-language*" | wc -l)
+          COMMITS_COUNT=$(find "$GITHUB_WORKSPACE/profile-summary-card-output" -name "*most-commit-language*" | wc -l)
+          STATS_COUNT=$(find "$GITHUB_WORKSPACE/profile-summary-card-output" -name "*stats*" | wc -l)
+          echo "Profile details cards: $PROFILE_COUNT"
+          echo "Repos per language cards: $REPOS_COUNT"
+          echo "Commits per language cards: $COMMITS_COUNT"
+          echo "Stats cards: $STATS_COUNT"
+          if [ "$PROFILE_COUNT" -lt 1 ] || [ "$REPOS_COUNT" -lt 1 ] || [ "$COMMITS_COUNT" -lt 1 ] || [ "$STATS_COUNT" -lt 1 ]; then
+            echo "FAIL: not all card types were generated"
+            exit 1
+          fi
+          echo "PASS: all card types generated"

@@ -1,0 +1,38 @@
+name: Test exclude languages input
+on:
+  workflow_dispatch:
+jobs:
+  test:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@de0fac2e4500dabe0009e67214ff5f5447ce83dd # v6.0.2
+
+      - id: action
+        uses: .
+        with:
+          USERNAME: octocat
+          AUTO_PUSH: false
+          EXCLUDE: 'JavaScript,TypeScript'
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: Assert output directory was created
+        run: |
+          echo "Checking profile-summary-card-output directory..."
+          if [ ! -d "$GITHUB_WORKSPACE/profile-summary-card-output" ]; then
+            echo "FAIL: profile-summary-card-output directory was not created"
+            exit 1
+          fi
+          echo "PASS: output directory exists"
+
+      - name: Assert SVG files were generated with exclusions
+        run: |
+          echo "Listing output directory contents..."
+          find "$GITHUB_WORKSPACE/profile-summary-card-output" -name "*.svg" | head -20
+          SVG_COUNT=$(find "$GITHUB_WORKSPACE/profile-summary-card-output" -name "*.svg" | wc -l)
+          echo "SVG count: $SVG_COUNT"
+          if [ "$SVG_COUNT" -lt 1 ]; then
+            echo "FAIL: no SVG files were generated"
+            exit 1
+          fi
+          echo "PASS: $SVG_COUNT SVG files generated with language exclusions"

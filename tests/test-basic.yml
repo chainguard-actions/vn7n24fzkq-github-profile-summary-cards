@@ -1,0 +1,47 @@
+name: Test basic usage - generate profile summary cards
+on:
+  workflow_dispatch:
+jobs:
+  test:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@de0fac2e4500dabe0009e67214ff5f5447ce83dd # v6.0.2
+
+      - id: action
+        uses: .
+        with:
+          USERNAME: octocat
+          AUTO_PUSH: false
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: Assert output directory was created
+        run: |
+          echo "Checking profile-summary-card-output directory..."
+          if [ ! -d "$GITHUB_WORKSPACE/profile-summary-card-output" ]; then
+            echo "FAIL: profile-summary-card-output directory was not created"
+            exit 1
+          fi
+          echo "PASS: output directory exists"
+
+      - name: Assert SVG files were generated
+        run: |
+          echo "Listing output directory contents..."
+          find "$GITHUB_WORKSPACE/profile-summary-card-output" -name "*.svg" | head -20
+          SVG_COUNT=$(find "$GITHUB_WORKSPACE/profile-summary-card-output" -name "*.svg" | wc -l)
+          echo "SVG count: $SVG_COUNT"
+          if [ "$SVG_COUNT" -lt 1 ]; then
+            echo "FAIL: no SVG files were generated"
+            exit 1
+          fi
+          echo "PASS: $SVG_COUNT SVG files generated"
+
+      - name: Assert README was generated
+        run: |
+          echo "Checking for README.md in output..."
+          if [ ! -f "$GITHUB_WORKSPACE/profile-summary-card-output/README.md" ]; then
+            echo "FAIL: README.md was not generated"
+            exit 1
+          fi
+          echo "PASS: README.md exists"
+          head -5 "$GITHUB_WORKSPACE/profile-summary-card-output/README.md"

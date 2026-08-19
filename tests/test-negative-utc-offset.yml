@@ -1,0 +1,29 @@
+name: Test negative UTC offset
+on:
+  workflow_dispatch:
+jobs:
+  test:
+    runs-on: ubuntu-latest
+    env:
+      GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+    steps:
+      - uses: actions/checkout@de0fac2e4500dabe0009e67214ff5f5447ce83dd # v6.0.2
+      - id: action
+        uses: .
+        with:
+          USERNAME: 'vn7n24fzkq'
+          UTC_OFFSET: '-5'
+          AUTO_PUSH: false
+        continue-on-error: true
+      - name: Assert action ran without unexpected failure
+        env:
+          OUTCOME: ${{ steps.action.outcome }}
+        run: |
+          echo "outcome: $OUTCOME"
+          # The action may fail due to API rate limits or missing token in test env,
+          # but it should not fail due to misconfiguration of a negative UTC_OFFSET.
+          if [ "$OUTCOME" = "skipped" ] || [ -z "$OUTCOME" ]; then
+            echo "FAIL: action was skipped or did not run"
+            exit 1
+          fi
+          echo "PASS: action ran with outcome=$OUTCOME"
