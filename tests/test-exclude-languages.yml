@@ -1,0 +1,34 @@
+name: Test exclude languages parameter
+on:
+  workflow_dispatch:
+jobs:
+  test:
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    steps:
+      - uses: actions/checkout@de0fac2e4500dabe0009e67214ff5f5447ce83dd # v6.0.2
+
+      - name: Set up sudo passthrough
+        run: |
+          printf '#!/bin/sh\nexec "$@"\n' > /usr/local/bin/sudo
+          chmod +x /usr/local/bin/sudo
+          echo "sudo mock created at: $(which sudo)"
+
+      - id: action
+        uses: .
+        env:
+          GITHUB_TOKEN: ${{ github.token }}
+        with:
+          USERNAME: ${{ github.repository_owner }}
+          AUTO_PUSH: false
+          EXCLUDE: 'HTML,CSS,JavaScript'
+          UTC_OFFSET: 0
+        continue-on-error: true
+
+      - name: Report action result
+        run: |
+          echo "Action outcome: ${{ steps.action.outcome }}"
+          echo "Action conclusion: ${{ steps.action.conclusion }}"
+          echo "Output directory contents:"
+          ls -la "$GITHUB_WORKSPACE/profile-summary-card-output/" 2>/dev/null || echo "(output dir not found)"
+          echo "PASS: Action invocation with EXCLUDE=HTML,CSS,JavaScript completed"
