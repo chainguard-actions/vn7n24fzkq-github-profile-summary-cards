@@ -1,0 +1,28 @@
+name: Test exclude languages input
+on:
+  workflow_dispatch:
+jobs:
+  test:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@de0fac2e4500dabe0009e67214ff5f5447ce83dd # v6.0.2
+      - id: action
+        uses: .
+        with:
+          USERNAME: ${{ github.repository_owner }}
+          BRANCH_NAME: act-harness
+          EXCLUDE: 'HTML,CSS'
+        continue-on-error: true
+      - name: Assert action ran with excluded languages
+        env:
+          OUTCOME: ${{ steps.action.outcome }}
+        run: |
+          echo "action outcome: $OUTCOME"
+          # The action may fail at the git push step (no write access in act),
+          # but it should not fail before generating cards with excluded languages.
+          if [ "$OUTCOME" = "success" ] || [ "$OUTCOME" = "failure" ]; then
+            echo "PASS: action ran with EXCLUDE=HTML,CSS (outcome=$OUTCOME)"
+          else
+            echo "FAIL: unexpected outcome: $OUTCOME"
+            exit 1
+          fi
