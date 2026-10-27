@@ -1,0 +1,70 @@
+name: Test basic usage with a single theme
+on:
+  workflow_dispatch:
+jobs:
+  test:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@de0fac2e4500dabe0009e67214ff5f5447ce83dd # v6.0.2
+      - name: Ensure sudo is available and output dir is clean
+        run: |
+          if ! command -v sudo >/dev/null 2>&1; then
+            printf '#!/bin/sh\nexec "$@"\n' > /usr/local/bin/sudo
+            chmod +x /usr/local/bin/sudo
+          fi
+          rm -rf "$GITHUB_WORKSPACE/profile-summary-card-output"
+      - id: action
+        uses: .
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        with:
+          USERNAME: octocat
+          THEME: github_dark
+          AUTO_PUSH: 'false'
+      - name: Assert preview README generated and only the requested theme exists
+        env:
+          OUTCOME: ${{ steps.action.outcome }}
+        run: |
+          echo "outcome: $OUTCOME"
+          if [ "$OUTCOME" != "success" ]; then
+            echo "FAIL: expected success"
+            exit 1
+          fi
+          OUT="$GITHUB_WORKSPACE/profile-summary-card-output"
+          ls -laR "$OUT" || true
+          if [ ! -f "$OUT/README.md" ]; then
+            echo "FAIL: $OUT/README.md not generated"
+            exit 1
+          fi
+          if ! grep -q "Theme Preview" "$OUT/README.md"; then
+            echo "FAIL: README.md missing 'Theme Preview' header"
+            exit 1
+          fi
+          for d in "$OUT"/*/; do
+            [ -d "$d" ] || continue
+            name="$(basename "$d")"
+            if [ "$name" != "github_dark" ]; then
+              echo "FAIL: unexpected theme folder '$name' (only github_dark requested)"
+              exit 1
+            fi
+          done
+          if [ -d "$OUT/github_dark" ]; then
+            if ! ls "$OUT/github_dark"/*.svg >/dev/null 2>&1; then
+              echo "FAIL: github_dark folder exists but contains no SVG"
+              exit 1
+            fi
+            if [ ! -f "$OUT/github_dark/README.md" ]; then
+              echo "FAIL: github_dark/README.md missing"
+              exit 1
+            fi
+          fi
+          echo "PASS"
+      - name: Assert nothing was committed (AUTO_PUSH false)
+        run: |
+          MSG="$(git log -1 --pretty=%s)"
+          echo "last commit: $MSG"
+          if [ "$MSG" = "Generate profile summary cards" ]; then
+            echo "FAIL: action committed despite AUTO_PUSH=false"
+            exit 1
+          fi
+          echo "PASS"

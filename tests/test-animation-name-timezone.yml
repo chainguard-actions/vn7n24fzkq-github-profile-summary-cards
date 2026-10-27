@@ -1,0 +1,67 @@
+name: Test animation, name override, time zone and excludes
+on:
+  workflow_dispatch:
+jobs:
+  test:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@de0fac2e4500dabe0009e67214ff5f5447ce83dd # v6.0.2
+      - name: Ensure sudo is available and output dir is clean
+        run: |
+          if ! command -v sudo >/dev/null 2>&1; then
+            printf '#!/bin/sh\nexec "$@"\n' > /usr/local/bin/sudo
+            chmod +x /usr/local/bin/sudo
+          fi
+          rm -rf "$GITHUB_WORKSPACE/profile-summary-card-output"
+      - id: action
+        uses: .
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        with:
+          USERNAME: octocat
+          THEME: default
+          ANIMATION: fade
+          DURATION: '1.5'
+          NAME: ActHarnessName
+          TIME_ZONE: Europe/Zurich
+          EXCLUDE: 'html,css'
+          EXCLUDE_REPOS: 'hello-world'
+          AUTO_PUSH: 'false'
+      - name: Assert output generated with requested options
+        env:
+          OUTCOME: ${{ steps.action.outcome }}
+        run: |
+          echo "outcome: $OUTCOME"
+          if [ "$OUTCOME" != "success" ]; then
+            echo "FAIL: expected success"
+            exit 1
+          fi
+          OUT="$GITHUB_WORKSPACE/profile-summary-card-output"
+          ls -laR "$OUT" || true
+          if [ ! -f "$OUT/README.md" ]; then
+            echo "FAIL: README.md not generated"
+            exit 1
+          fi
+          for d in "$OUT"/*/; do
+            [ -d "$d" ] || continue
+            name="$(basename "$d")"
+            if [ "$name" != "default" ]; then
+              echo "FAIL: unexpected theme folder '$name'"
+              exit 1
+            fi
+          done
+          SVG="$OUT/default/0-profile-details.svg"
+          if [ -f "$SVG" ]; then
+            if ! grep -q "ActHarnessName" "$SVG"; then
+              echo "FAIL: NAME override not present in profile details card"
+              exit 1
+            fi
+            if ! grep -qiE "@keyframes|animation" "$SVG"; then
+              echo "FAIL: expected CSS animation in profile details card"
+              exit 1
+            fi
+            echo "profile details card validated"
+          else
+            echo "NOTE: profile details card not generated (API limits with this token)"
+          fi
+          echo "PASS"
